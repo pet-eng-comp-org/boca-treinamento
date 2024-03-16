@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+  boca-restored:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    ports:
+      - 5433:5432
+    environment:
+      #POSTGRES_DB: bocadb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: treinamento23treinamento
+    networks:
+      - boca
+
+networks:
+  boca:
+    name: boca
