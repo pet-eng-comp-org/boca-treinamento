@@ -2,7 +2,7 @@ version: "3"
 
 services:
   boca-web:
-    image: ghcr.io/petengcomp/boca-topcom:21
+    image: ghcr.io/joaofazolo/boca-docker/boca-web
     restart: unless-stopped
     ports:
       - 8000:80
@@ -20,11 +20,11 @@ services:
       - BOCA_URL=localhost:8000/boca
     networks:
       - boca
-    # volumes:
-    #   - ./topcom21-treinamento:/var/www/boca/src
+    #volumes:
+    #  - ./src:/var/www/boca/src
 
   boca-jail:
-    image: ghcr.io/rlaiola/boca-docker/boca-jail:teste
+    image: ghcr.io/joaofazolo/boca-docker/boca-jail
     restart: unless-stopped
     depends_on:
       - boca-postgres
