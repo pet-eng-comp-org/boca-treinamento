@@ -78,7 +78,7 @@ require_once('version.php');
 
 <style>
 #grad1 {
-  background-image: radial-gradient(circle, rgba(251,245,224,1) 25%, rgba(222,207,147,1) 100%); /* Standard syntax (must be last) */
+  background-image: radial-gradient(circle, rgba(30, 215, 96, 1) 25%, rgba(9, 137, 54, 1) 100%); /* Standard syntax (must be last) */
 }
 </style>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -141,7 +141,7 @@ if(function_exists("globalconf") && function_exists("sanitizeVariables")) {
             <tr> 
               <td nowrap>
 								<div align="center">
-									<img src="images/topcom21.png" class="text-focus-in" width="310" title="Logo do TOPCOM" alt="Logo do TOPCOM" />
+									<img src="images/topcom22.png" class="text-focus-in" width="310" title="Logo do TOPCOM" alt="Logo do TOPCOM" />
 								</div>
               </td>
             </tr>
