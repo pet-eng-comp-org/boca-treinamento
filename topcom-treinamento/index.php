@@ -141,7 +141,7 @@ if(function_exists("globalconf") && function_exists("sanitizeVariables")) {
             <tr> 
               <td nowrap>
 								<div align="center">
-									<img src="images/topcom22.png" class="text-focus-in" width="310" title="Logo do TOPCOM" alt="Logo do TOPCOM" />
+									<img src="images/Logo 3.png" class="text-focus-in" width="310" title="Logo do TOPCOM" alt="Logo do TOPCOM" />
 								</div>
               </td>
             </tr>
