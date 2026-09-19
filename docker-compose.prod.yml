@@ -2,7 +2,7 @@
 # O app usa o usuário comum `bocauser`; o superusuário `postgres` só serve ao init.sh.
 services:
   boca-web:
-    image: ghcr.io/pet-eng-comp-org/boca-topcom@sha256:af1a4df2224fd8107c1fe11ac0ea63c6f205abd0b4c5fb2e29a4f2b58b4980c6
+    image: ghcr.io/pet-eng-comp-org/boca-topcom@sha256:770f4d7c784b48d2da2908481189d17322643d1856287ed82d63f6db1828bc25
     restart: unless-stopped
     logging:
       driver: json-file
