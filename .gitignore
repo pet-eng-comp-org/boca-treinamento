@@ -1,0 +1,7 @@
+src/private/agentcode/
+src/private/comp/
+src/private/runslog/
+src/private/runtmp/
+src/private/scoretmp/
+src/private/problemtmp/*
+!src/private/problemtmp/.htaccess

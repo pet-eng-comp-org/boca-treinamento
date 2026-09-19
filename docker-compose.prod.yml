@@ -1,0 +1,69 @@
+# Stack `boca` (30) na VM. As senhas vêm das variáveis de ambiente da stack no Portainer.
+# O app usa o usuário comum `bocauser`; o superusuário `postgres` só serve ao init.sh.
+services:
+  boca-web:
+    image: ghcr.io/pet-eng-comp-org/boca-topcom@sha256:DIGEST_A_PREENCHER
+    restart: unless-stopped
+    depends_on:
+      - boca-postgres
+    environment:
+      - BOCA_DB_HOST=boca-postgres
+      - DB_PORT=5432
+      - BOCA_DB_NAME=bocadb
+      - BOCA_DB_USER=bocauser
+      - BOCA_DB_PASSWORD=${BOCA_DB_PASSWORD}
+      - BOCA_DB_SUPER_USER=postgres
+      - BOCA_DB_SUPER_PASSWORD=${BOCA_DB_SUPER_PASSWORD}
+      - BOCA_PASSWORD=${BOCA_PASSWORD}
+      - BOCA_KEY=${BOCA_KEY}
+      - BOCA_URL=boca.pet.inf.ufes.br/boca
+    volumes:
+      - /srv/boca-config/web-score/score.sep:/var/www/boca/src/private/score.sep
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bocaweb.rule=Host(`boca.pet.inf.ufes.br`)"
+      - "traefik.http.routers.bocaweb.priority=1"
+      - "traefik.http.routers.bocaweb.middlewares=redirecionamento"
+      - "traefik.http.middlewares.redirecionamento.redirectregex.regex=^https?://([^/]+)/?$$"
+      - "traefik.http.middlewares.redirecionamento.redirectregex.replacement=https://$$1/boca"
+      - "traefik.http.services.bocaweb.loadbalancer.server.port=80"
+      - "traefik.http.routers.bocaweb.entrypoints=websecure"
+      - "traefik.http.routers.bocaweb.tls.certresolver=le"
+      - "traefik.docker.network=traefik"
+    networks:
+      - traefik
+
+  # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
+  boca-jail:
+    image: ghcr.io/rlaiola/boca-docker/boca-jail@sha256:dbb07e5dc48517d773f1d337a840428a260906b5e68d99bf2938c30190d11bb8
+    privileged: true
+    restart: unless-stopped
+    depends_on:
+      - boca-postgres
+    environment:
+      - BOCA_DB_HOST=boca-postgres
+      - BOCA_WEB_HOST=boca-web
+      - BOCA_DB_NAME=bocadb
+      - BOCA_DB_USER=bocauser
+      - BOCA_DB_PASSWORD=${BOCA_DB_PASSWORD}
+    networks:
+      - traefik
+
+  boca-postgres:
+    image: postgres@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
+    container_name: boca-postgres
+    restart: unless-stopped
+    volumes:
+      - boca_data:/var/lib/postgresql/data
+    networks:
+      - traefik
+
+volumes:
+  boca_data:
+    external: true
+    name: boca_boca_data
+
+networks:
+  traefik:
+    name: traefik
+    external: true

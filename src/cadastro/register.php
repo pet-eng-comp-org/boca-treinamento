@@ -1,0 +1,85 @@
+<?php
+// Autocadastro de equipes do BOCA de treinamento.
+// Os valores vão ao banco por pg_query_params, nunca concatenados no SQL.
+
+require_once('../hex.php');
+
+$BOCA_DB_HOST = getenv('BOCA_DB_HOST') ?: 'localhost';
+$BOCA_DB_NAME = getenv('BOCA_DB_NAME') ?: 'bocadb';
+$BOCA_DB_USER = getenv('BOCA_DB_USER') ?: 'bocauser';
+$BOCA_DB_PASSWORD = getenv('BOCA_DB_PASSWORD') ?: '';
+$DB_PORT = getenv('DB_PORT') ?: 5432;
+
+function falha($msg) {
+	http_response_code(400);
+	echo '<html><head><meta charset="utf-8"><title>Cadastro</title></head><body>';
+	echo '<p>' . htmlspecialchars($msg, ENT_QUOTES, 'UTF-8') . '</p>';
+	echo '<p><a href="index.php">Voltar</a></p></body></html>';
+	exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+	header('Location: index.php');
+	exit;
+}
+
+$username = trim($_POST['username'] ?? '');
+$fullname = trim($_POST['fullname'] ?? '');
+$email = trim($_POST['email0'] ?? '');
+$password = $_POST['passwordn1'] ?? '';
+$checkpass = $_POST['passwordn2'] ?? '';
+
+if ($username === '' || $fullname === '' || $email === '' || $password === '' || $checkpass === '')
+	falha('Preencha todos os campos.');
+// o login do BOCA (flog.php) só aceita nome de usuário alfanumérico
+if (!preg_match('/^[A-Za-z0-9]{3,20}$/', $username))
+	falha('O usuário deve ter de 3 a 20 caracteres, só letras sem acento e números.');
+// a imagem não tem mbstring; o /u conta caracteres e recusa UTF-8 inválido
+if (!preg_match('/^.{1,200}$/su', $fullname))
+	falha('O nome completo pode ter no máximo 200 caracteres.');
+// o placar do BOCA imprime o nome sem escape
+if (preg_match('/[<>"`\\\\\x00-\x1f]/', $fullname))
+	falha('O nome completo não pode ter os caracteres < > " ` \\.');
+if (strlen($email) > 300 || !filter_var($email, FILTER_VALIDATE_EMAIL))
+	falha('E-mail inválido.');
+if (strlen($password) < 6)
+	falha('A senha deve ter pelo menos 6 caracteres.');
+if ($password !== $checkpass)
+	falha('As senhas não conferem.');
+
+$bdcon = pg_connect("host=$BOCA_DB_HOST port=$DB_PORT dbname=$BOCA_DB_NAME user=$BOCA_DB_USER password=$BOCA_DB_PASSWORD connect_timeout=5");
+if (!$bdcon)
+	falha('Não foi possível conectar ao banco. Tente de novo mais tarde.');
+
+// O lock evita que dois cadastros simultâneos peguem o mesmo número.
+pg_query($bdcon, 'BEGIN');
+pg_query($bdcon, 'LOCK TABLE usertable IN EXCLUSIVE MODE');
+
+$r = pg_query_params($bdcon, 'SELECT 1 FROM usertable WHERE username = $1', array($username));
+if ($r === false) {
+	pg_query($bdcon, 'ROLLBACK');
+	falha('Erro ao consultar o banco.');
+}
+if (pg_num_rows($r) > 0) {
+	pg_query($bdcon, 'ROLLBACK');
+	falha('Esse usuário já existe. Escolha outro.');
+}
+
+$r = pg_query($bdcon, 'SELECT GREATEST(COALESCE(MAX(usernumber), 0), 1000) + 1 FROM usertable');
+$numero = (int) pg_fetch_result($r, 0, 0);
+
+// '!' na frente do hash: senha definida no cadastro, que o time não troca pelo BOCA.
+$ok = pg_query_params($bdcon,
+	"INSERT INTO usertable (contestnumber, usersitenumber, usernumber, username, userfullname, userdesc,
+	                        usertype, userenabled, usermultilogin, userpassword)
+	 VALUES (1, 1, $1, $2, $3, $4, 'team', TRUE, TRUE, $5)",
+	array($numero, $username, $fullname, $email, '!' . myhash($password)));
+
+if ($ok === false) {
+	pg_query($bdcon, 'ROLLBACK');
+	falha('Não foi possível concluir o cadastro.');
+}
+pg_query($bdcon, 'COMMIT');
+pg_close($bdcon);
+
+header('Location: sucess.php');
