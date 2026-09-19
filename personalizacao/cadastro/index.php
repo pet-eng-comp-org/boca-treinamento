@@ -1,7 +1,8 @@
 <?php
-
-
-
+// token do formulário: register.php só aceita envio que passou por esta página
+session_start();
+if (empty($_SESSION['cadastro_token']))
+	$_SESSION['cadastro_token'] = bin2hex(random_bytes(32));
 ?>
 
  <html>
@@ -26,6 +27,11 @@
 	<tr align="center" valign="middle"> 
 	    <td> 
 	      <form name="form1" action="register.php" method="POST">
+	        <input type="hidden" name="token" value="<?php echo $_SESSION['cadastro_token']; ?>">
+	        <!-- isca para robô: fica fora da tela, gente não preenche -->
+	        <div style="position:absolute; left:-9999px" aria-hidden="true">
+	          <input type="text" name="site" tabindex="-1" autocomplete="off">
+	        </div>
 	        <div align="center"> 
 	          <table class="login-table" border="0" align="center">
 	            <tr> 

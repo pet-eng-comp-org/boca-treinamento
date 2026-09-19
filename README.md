@@ -23,8 +23,11 @@ A imagem é a `boca-web` do boca-docker com `personalizacao/` copiada por cima d
 | `index.php`, `Css.php` | tela de login e cores do Topcom, botões de cadastro e manual |
 | `admin/`, `system/`, `team/` `header.php` | cor da barra de cada perfil |
 | `admin/language.php` | cor dos links |
-| `cadastro/` | autocadastro de equipes (não existe no BOCA) |
+| `cadastro/` | autocadastro de equipes (não existe no BOCA), com token no formulário, campo isca para robô e limite por IP no Traefik |
 | `images/`, `arquivos/` | logos do Topcom e o manual do usuário |
+
+O entrypoint é o `init-pet.sh`: se o banco já existe, sobe o Apache sem passar pelo `/init.sh` do boca-docker, que
+recria o banco do zero quando o `bocauser` não consegue conectar por qualquer motivo.
 
 Opções do BOCA ligadas no `docker-compose.prod.yml`: `BOCA_ENABLE_VIEW_RUNS`, `BOCA_ENABLE_PROBLEM_STATS`,
 `BOCA_SHOW_UNSOLVED_FIRST`, `BOCA_ENABLE_TABLE_FILTER`, `BOCA_DISABLE_TASKS` e `BOCA_TRUSTED_PROXIES`.
@@ -58,7 +61,7 @@ O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do
 composes). O `boca-web` e o `boca-jail` vão juntos para produção.
 
 No PR do `boca-web`, o CI roda `./verifica-base.sh`, que falha se a versão nova mudou algum arquivo que
-`personalizacao/` sobrescreve. Nesse caso: comparar o arquivo novo da base com o nosso, trazer para
+`personalizacao/` sobrescreve ou o `/init.sh` (conferir se o `init-pet.sh` continua cobrindo o que ele faz). Nesse caso: comparar o arquivo novo da base com o nosso, trazer para
 `personalizacao/` o que a base mudou, rodar `./verifica-base.sh --atualiza` e commitar no mesmo PR.
 
 </details>
@@ -84,7 +87,8 @@ Sempre no banco primeiro e depois na variável `BOCA_DB_PASSWORD` da stack:
 ALTER ROLE bocauser PASSWORD '...';
 ```
 
-Na ordem inversa o `init.sh` não conecta, conclui que o banco não existe e **recria o banco do zero**.
+Na ordem inversa o site não conecta ao banco até a variável ser corrigida (o `init-pet.sh` impede que o banco seja
+recriado).
 
 </details>
 

@@ -3,12 +3,7 @@
 // Os valores vão ao banco por pg_query_params, nunca concatenados no SQL.
 
 require_once('../hex.php');
-
-$BOCA_DB_HOST = getenv('BOCA_DB_HOST') ?: 'localhost';
-$BOCA_DB_NAME = getenv('BOCA_DB_NAME') ?: 'bocadb';
-$BOCA_DB_USER = getenv('BOCA_DB_USER') ?: 'bocauser';
-$BOCA_DB_PASSWORD = getenv('BOCA_DB_PASSWORD') ?: '';
-$DB_PORT = getenv('DB_PORT') ?: 5432;
+require_once('../private/conf.php');   // globalconf(): a mesma configuração de banco do BOCA
 
 function falha($msg) {
 	http_response_code(400);
@@ -20,6 +15,16 @@ function falha($msg) {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	header('Location: index.php');
+	exit;
+}
+
+session_start();
+$token = $_POST['token'] ?? '';
+if (empty($_SESSION['cadastro_token']) || !is_string($token) || !hash_equals($_SESSION['cadastro_token'], $token))
+	falha('O formulário expirou. Volte e preencha de novo.');
+// isca: só robô preenche; responde como se tivesse dado certo, sem gravar nada
+if (($_POST['site'] ?? '') !== '') {
+	header('Location: sucess.php');
 	exit;
 }
 
@@ -51,23 +56,17 @@ if (strlen($password) < 6)
 if ($password !== $checkpass)
 	falha('As senhas não conferem.');
 
-$bdcon = pg_connect("host=$BOCA_DB_HOST port=$DB_PORT dbname=$BOCA_DB_NAME user=$BOCA_DB_USER password=$BOCA_DB_PASSWORD connect_timeout=5");
+$cf = globalconf();
+$q = function ($v) { return "'" . addcslashes((string) $v, "'\\") . "'"; };
+$bdcon = pg_connect('host=' . $q($cf['dbhost']) . ' port=' . $q($cf['dbport']) . ' dbname=' . $q($cf['dbname'])
+	. ' user=' . $q($cf['dbuser']) . ' password=' . $q($cf['dbpass']) . ' connect_timeout=5');
 if (!$bdcon)
 	falha('Não foi possível conectar ao banco. Tente de novo mais tarde.');
 
-// O lock evita que dois cadastros simultâneos peguem o mesmo número.
+// Trava só entre cadastros (não a tabela, que o login do BOCA também atualiza), para dois
+// cadastros simultâneos não pegarem o mesmo número nem o mesmo nome.
 pg_query($bdcon, 'BEGIN');
-pg_query($bdcon, 'LOCK TABLE usertable IN EXCLUSIVE MODE');
-
-$r = pg_query_params($bdcon, 'SELECT 1 FROM usertable WHERE username = $1', array($username));
-if ($r === false) {
-	pg_query($bdcon, 'ROLLBACK');
-	falha('Erro ao consultar o banco.');
-}
-if (pg_num_rows($r) > 0) {
-	pg_query($bdcon, 'ROLLBACK');
-	falha('Esse usuário já existe. Escolha outro.');
-}
+pg_query($bdcon, "SELECT pg_advisory_xact_lock(hashtext('boca-cadastro'))");
 
 // o login do BOCA procura o usuário no concurso ativo e no site local dele
 $r = pg_query($bdcon, 'SELECT contestnumber, contestlocalsite FROM contesttable WHERE contestactive = true ORDER BY contestnumber DESC LIMIT 1');
@@ -77,6 +76,16 @@ if ($r === false || pg_num_rows($r) == 0) {
 }
 $concurso = (int) pg_fetch_result($r, 0, 0);
 $site = (int) pg_fetch_result($r, 0, 1);
+
+$r = pg_query_params($bdcon, 'SELECT 1 FROM usertable WHERE username = $1 AND contestnumber = $2', array($username, $concurso));
+if ($r === false) {
+	pg_query($bdcon, 'ROLLBACK');
+	falha('Erro ao consultar o banco.');
+}
+if (pg_num_rows($r) > 0) {
+	pg_query($bdcon, 'ROLLBACK');
+	falha('Esse usuário já existe. Escolha outro.');
+}
 
 $r = pg_query($bdcon, 'SELECT GREATEST(COALESCE(MAX(usernumber), 0), 1000) + 1 FROM usertable');
 $numero = (int) pg_fetch_result($r, 0, 0);
@@ -94,5 +103,6 @@ if ($ok === false) {
 }
 pg_query($bdcon, 'COMMIT');
 pg_close($bdcon);
+unset($_SESSION['cadastro_token']);
 
 header('Location: sucess.php');

@@ -12,4 +12,7 @@ RUN chmod -R go-rwx /var/www/boca/src/private
 # dificuldade percorre usuários sem submissão). Em produção, só erros vão ao log.
 RUN printf 'error_reporting = E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED\ndisplay_errors = Off\n' \
       > "$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;' | sed 's#/cli/#/apache2/#')/99-boca-treinamento.ini"
+COPY init-pet.sh /init-pet.sh
+RUN chmod 755 /init-pet.sh
 USER www-data
+ENTRYPOINT ["/init-pet.sh"]

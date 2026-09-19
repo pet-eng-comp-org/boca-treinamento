@@ -32,7 +32,9 @@ services:
       - BOCA_SHOW_UNSOLVED_FIRST=true
       - BOCA_ENABLE_TABLE_FILTER=true
       - BOCA_DISABLE_TASKS=true          # impressão e balão só existem na competição presencial
-      # IP real do visitante vem no X-Forwarded-For do Traefik (rede traefik, 172.31.0.0/16)
+      # IP real do visitante vem no X-Forwarded-For do Traefik. O BOCA só aceita curinga no último
+      # octeto: 172.31.0.* cobre o IP atual do Traefik (172.31.0.3); se a rede traefik for recriada e ele
+      # mudar de faixa, o BOCA volta a registrar o IP do Traefik (sem quebrar nada) até ajustar aqui.
       - BOCA_TRUSTED_PROXIES=172.31.0.*
     volumes:
       - /srv/boca-config/web-score/score.sep:/var/www/boca/src/private/score.sep
@@ -46,6 +48,16 @@ services:
       - "traefik.http.services.boca-treinamento_web.loadbalancer.server.port=80"
       - "traefik.http.routers.boca-treinamento_web.entrypoints=websecure"
       - "traefik.http.routers.boca-treinamento_web.tls.certresolver=le"
+      # cadastro público: limite por IP contra cadastro em massa (folgado para um laboratório com o mesmo IP)
+      - "traefik.http.routers.boca-treinamento_cadastro.rule=Host(`boca.pet.inf.ufes.br`) && Path(`/boca/cadastro/register.php`)"
+      - "traefik.http.routers.boca-treinamento_cadastro.priority=100"
+      - "traefik.http.routers.boca-treinamento_cadastro.entrypoints=websecure"
+      - "traefik.http.routers.boca-treinamento_cadastro.tls.certresolver=le"
+      - "traefik.http.routers.boca-treinamento_cadastro.service=boca-treinamento_web"
+      - "traefik.http.routers.boca-treinamento_cadastro.middlewares=boca-treinamento_limite-cadastro"
+      - "traefik.http.middlewares.boca-treinamento_limite-cadastro.ratelimit.average=10"
+      - "traefik.http.middlewares.boca-treinamento_limite-cadastro.ratelimit.period=1m"
+      - "traefik.http.middlewares.boca-treinamento_limite-cadastro.ratelimit.burst=30"
       - "traefik.docker.network=traefik"
     networks:
       - traefik

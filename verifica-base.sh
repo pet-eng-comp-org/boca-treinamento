@@ -1,5 +1,6 @@
 #!/bin/bash
-# Confere se a imagem base mudou algum arquivo que personalizacao/ sobrescreve.
+# Confere se a imagem base mudou algum arquivo que personalizacao/ sobrescreve, ou o /init.sh
+# que o init-pet.sh substitui quando o banco já existe.
 #
 # Arquivos de personalizacao/ que existem na base a substituem inteira: se o Rodrigo
 # corrigir um deles numa versão nova, a nossa cópia esconde a correção. base.sha256
@@ -22,7 +23,8 @@ atual=$(
     while read -r f; do
       if [ -f "'$SRC'/$f" ]; then sha256sum "'$SRC'/$f" | sed "s#  '$SRC'/#  #"
       else echo "ausente  $f"; fi
-    done'
+    done
+    sha256sum /init.sh | sed "s#  /#  (entrypoint) #"'
 )
 
 if [ "${1:-}" = "--atualiza" ]; then
