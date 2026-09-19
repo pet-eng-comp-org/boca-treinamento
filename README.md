@@ -21,11 +21,12 @@ arquivo novo da base com o nosso, trazer para `personalizacao/` o que a base mud
 `./verifica-base.sh --atualiza` e commitar no mesmo PR.
 
 Nada chega à VM sozinho: as imagens estão fixadas por digest, e implantar continua sendo trocar o digest do
-`boca-treinamento` no compose e atualizar a stack.
+`boca-treinamento/web` no compose e atualizar a stack.
 
 ## Publicar e implantar
 
-Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-treinamento:sha-<commit>`; o digest aparece no resumo do
+Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-<commit>`, a imagem do
+`boca-treinamento_web` (o `boca-treinamento_jail` usa direto a `boca-jail` do boca-docker); o digest aparece no resumo do
 workflow. Implantar é trocar o digest em `docker-compose.prod.yml` por um PR e atualizar a stack `boca-treinamento` no
 Portainer. As senhas ficam nas variáveis da stack (`BOCA_DB_PASSWORD`, `BOCA_DB_SUPER_PASSWORD`,
 `BOCA_PASSWORD`, `BOCA_KEY`), com cópia no Notion.
