@@ -2,6 +2,7 @@
 # O app usa o usuário comum `bocauser`; o superusuário `postgres` só serve ao init.sh.
 services:
   boca-web:
+    container_name: boca_web
     image: ghcr.io/pet-eng-comp-org/boca-topcom@sha256:770f4d7c784b48d2da2908481189d17322643d1856287ed82d63f6db1828bc25
     restart: unless-stopped
     logging:
@@ -13,6 +14,8 @@ services:
       boca-postgres:
         condition: service_healthy
     environment:
+      # boca-postgres e boca-web são os nomes de serviço, únicos nas redes; um nome genérico como
+      # "database" colidiria com o de outra stack na rede traefik
       - BOCA_DB_HOST=boca-postgres
       - DB_PORT=5432
       - BOCA_DB_NAME=bocadb
@@ -35,14 +38,14 @@ services:
       - /srv/boca-config/web-score/score.sep:/var/www/boca/src/private/score.sep
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.bocaweb.rule=Host(`boca.pet.inf.ufes.br`)"
-      - "traefik.http.routers.bocaweb.priority=1"
-      - "traefik.http.routers.bocaweb.middlewares=redirecionamento"
-      - "traefik.http.middlewares.redirecionamento.redirectregex.regex=^https?://([^/]+)/?$$"
-      - "traefik.http.middlewares.redirecionamento.redirectregex.replacement=https://$$1/boca"
-      - "traefik.http.services.bocaweb.loadbalancer.server.port=80"
-      - "traefik.http.routers.bocaweb.entrypoints=websecure"
-      - "traefik.http.routers.bocaweb.tls.certresolver=le"
+      - "traefik.http.routers.boca_web.rule=Host(`boca.pet.inf.ufes.br`)"
+      - "traefik.http.routers.boca_web.priority=1"
+      - "traefik.http.routers.boca_web.middlewares=boca_redirecionamento"
+      - "traefik.http.middlewares.boca_redirecionamento.redirectregex.regex=^https?://([^/]+)/?$$"
+      - "traefik.http.middlewares.boca_redirecionamento.redirectregex.replacement=https://$$1/boca"
+      - "traefik.http.services.boca_web.loadbalancer.server.port=80"
+      - "traefik.http.routers.boca_web.entrypoints=websecure"
+      - "traefik.http.routers.boca_web.tls.certresolver=le"
       - "traefik.docker.network=traefik"
     networks:
       - traefik
@@ -50,6 +53,7 @@ services:
 
   # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
   boca-jail:
+    container_name: boca_jail
     image: ghcr.io/rlaiola/boca-docker/boca-jail:1.2.3@sha256:8542b574b09bc0ef47b45c0a6751379ade15a63846b2f975f1283f4a1ddbba49
     privileged: true
     restart: unless-stopped
@@ -72,7 +76,7 @@ services:
 
   boca-postgres:
     image: postgres:14-alpine@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
-    container_name: boca-postgres
+    container_name: boca_database
     restart: unless-stopped
     logging:
       driver: json-file
