@@ -21,7 +21,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # falha se a versão nova da base mudou um arquivo que personalizacao/ sobrescreve
       - name: Confere a base contra os arquivos personalizados
