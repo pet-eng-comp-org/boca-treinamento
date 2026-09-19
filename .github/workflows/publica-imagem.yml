@@ -1,7 +1,9 @@
 name: Publica imagem no GHCR
 
-# Publica a imagem; não implanta. O BOCA guarda competições e contas, então
-# ir para produção é trocar o digest no docker-compose.prod.yml por um PR.
+# Merge na main: constrói e publica a imagem do web e grava o digest no
+# docker-compose.prod.yml; o Portainer acompanha esse arquivo e aplica.
+# O compose aponta para digest, nunca para tag: o commit que dispara a implantação
+# é sempre posterior à imagem existir.
 on:
   push:
     branches: [main]
@@ -20,6 +22,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v7
 
@@ -46,3 +50,36 @@ jobs:
       - if: github.event_name != 'pull_request'
         run: |
           echo "Digest publicado: ${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
+
+  implanta:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Grava o digest no compose de produção
+        env:
+          DIGEST: ${{ needs.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          ARQ=docker-compose.prod.yml
+          IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/web"
+          sed -i -E "s#(image: )${IMG}@sha256:[a-f0-9]+#\1${IMG}@${DIGEST}#" "$ARQ"
+          if git diff --quiet -- "$ARQ"; then
+            echo "O compose já aponta para ${DIGEST}."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qm "deploy: imagem do commit ${GITHUB_SHA:0:8}
+
+          Digest: ${DIGEST}
+
+          O Portainer aplica em até 5 minutos. Para voltar: git revert deste commit." -- "$ARQ"
+          # push com GITHUB_TOKEN não dispara workflow, então não há laço
+          git push -q origin HEAD:main
