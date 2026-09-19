@@ -69,12 +69,11 @@ No PR do `boca-web`, o CI roda `./verifica-base.sh`, que falha se a versão nova
 <details>
 <summary><b>Publicar e implantar</b></summary>
 
-1. Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-<commit>`; o digest aparece no resumo
-   do workflow.
-2. Trocar o digest em `docker-compose.prod.yml` por um PR.
-3. No Portainer, atualizar a stack `boca-treinamento` com o compose novo, mantendo as variáveis.
+Merge na `main` é implantar: o CI publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-<commit>` e grava o
+digest em `docker-compose.prod.yml`; a stack `boca-treinamento` é git-ops e o Portainer aplica em até 5 minutos.
+PR do Dependabot no compose (jail, postgres) também vai para produção no merge.
 
-Nada chega à VM sozinho: as imagens estão fixadas por digest.
+Voltar uma versão: `git revert` do commit `deploy: imagem do commit ...`.
 
 </details>
 
