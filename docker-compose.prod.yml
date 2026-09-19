@@ -3,7 +3,7 @@
 services:
   boca-web:
     container_name: boca-treinamento_web
-    image: ghcr.io/pet-eng-comp-org/boca-treinamento/web@sha256:ae7d368ca6952d66ca303e8c2342ae85b67d7ec608364f888560e5f4819694b0
+    image: ghcr.io/pet-eng-comp-org/boca-treinamento/web@sha256:e27afa547557404d10512ea1f1316ea3bbe019001d4ee81ed139eb87a50d55ce
     restart: unless-stopped
     logging:
       driver: json-file
