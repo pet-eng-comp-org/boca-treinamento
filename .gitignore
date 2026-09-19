@@ -1,7 +1,6 @@
-src/private/agentcode/
-src/private/comp/
-src/private/runslog/
-src/private/runtmp/
-src/private/scoretmp/
-src/private/problemtmp/*
-!src/private/problemtmp/.htaccess
+competicao/*/private/agentcode/
+competicao/*/private/comp/
+competicao/*/private/runslog/
+competicao/*/private/runtmp/
+competicao/*/private/scoretmp/
+competicao/*/private/problemtmp/*

@@ -1,21 +1,30 @@
 # boca-topcom
 
-Imagem do BOCA de treinamento do Topcom (`boca.pet.inf.ufes.br/boca`): a `boca-web` oficial do
-[rlaiola/boca-docker](https://github.com/rlaiola/boca-docker) 1.2.1 com a pasta `src` do PET por cima.
+BOCA de treinamento do Topcom (`boca.pet.inf.ufes.br/boca`), no ar o ano todo para treinar com as
+questões das edições anteriores.
 
-- `src/` — o BOCA 1.5.17 com as personalizações do PET: visual do Topcom, placar e o autocadastro de
-  equipes em `src/cadastro/`.
-- `docker-compose.prod.yml` — a stack `boca` da VM. As senhas ficam nas variáveis de ambiente da stack no
-  Portainer (`BOCA_DB_PASSWORD`, `BOCA_DB_SUPER_PASSWORD`, `BOCA_PASSWORD`, `BOCA_KEY`), com cópia no Notion.
+A imagem é a `boca-web` do [boca-docker](https://github.com/rlaiola/boca-docker) (BOCA do
+[cassiopc/boca](https://github.com/cassiopc/boca)) com os arquivos de `personalizacao/` copiados por cima:
 
-## Publicar uma versão
+- `Css.php`, `index.php` e os `header.php` — cores e tela de login do Topcom
+- `cadastro/` — autocadastro de equipes
+- `images/` e `arquivos/` — logos e o manual do usuário
+
+Atualizar o BOCA é trocar a versão no `FROM` do `Dockerfile` e conferir se algum arquivo de
+`personalizacao/` mudou na versão nova (`index.php` e `Css.php` costumam mudar).
+
+`competicao/` guarda o BOCA usado no dia de cada Topcom, que roda numa máquina à parte, não na VM do PET.
+
+## Publicar e implantar
 
 Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-topcom:sha-<commit>`; o digest aparece no resumo do
-workflow. Implantar é trocar o digest em `docker-compose.prod.yml` por um PR e atualizar a stack.
+workflow. Implantar é trocar o digest em `docker-compose.prod.yml` por um PR e atualizar a stack `boca` (30) no
+Portainer. As senhas ficam nas variáveis da stack (`BOCA_DB_PASSWORD`, `BOCA_DB_SUPER_PASSWORD`,
+`BOCA_PASSWORD`, `BOCA_KEY`), com cópia no Notion.
 
 ## Senha do `bocauser`
 
 As tabelas do banco pertencem ao `bocauser`. Se a senha dele no banco não for a de `BOCA_DB_PASSWORD`, o
-`init.sh` da imagem oficial conclui que o banco não existe e roda o `createdb.php`, **que recria o banco do zero**.
+`init.sh` da imagem conclui que o banco não existe e roda o `createdb.php`, **que recria o banco do zero**.
 Trocar essa senha é sempre nos dois lugares, banco primeiro:
 `ALTER ROLE bocauser PASSWORD '...'` e depois a variável da stack.

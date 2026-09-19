@@ -4,6 +4,11 @@ services:
   boca-web:
     image: ghcr.io/pet-eng-comp-org/boca-topcom@sha256:4fec666aa4c0a3c5720a9450e88074e71e60853f5f31dd03c4b4ce4e556c0bec
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - boca-postgres
     environment:
@@ -38,6 +43,11 @@ services:
     image: ghcr.io/rlaiola/boca-docker/boca-jail@sha256:dbb07e5dc48517d773f1d337a840428a260906b5e68d99bf2938c30190d11bb8
     privileged: true
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - boca-postgres
     environment:
@@ -53,6 +63,11 @@ services:
     image: postgres@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
     container_name: boca-postgres
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - boca_data:/var/lib/postgresql/data
     networks:
