@@ -1,39 +1,98 @@
-# boca-treinamento
+# 🎈 boca-treinamento
 
-BOCA de treinamento do Topcom (`boca.pet.inf.ufes.br/boca`), no ar o ano todo para treinar com as
-questões das edições anteriores. O BOCA do dia da competição roda em outra máquina e não está aqui.
+[![Publica imagem no GHCR](https://github.com/pet-eng-comp-org/boca-treinamento/actions/workflows/publica-imagem.yml/badge.svg)](https://github.com/pet-eng-comp-org/boca-treinamento/actions/workflows/publica-imagem.yml)
 
-A imagem é a `boca-web` do [boca-docker](https://github.com/rlaiola/boca-docker) (BOCA do
-[cassiopc/boca](https://github.com/cassiopc/boca)) com os arquivos de `personalizacao/` copiados por cima:
+BOCA de treinamento do Topcom, no ar o ano todo em **[boca.pet.inf.ufes.br/boca](https://boca.pet.inf.ufes.br/boca)**
+com as questões das edições anteriores. Equipes se cadastram sozinhas. O BOCA do dia da competição roda em outra
+máquina e não está aqui.
 
-- `Css.php`, `index.php` e os `header.php` — cores e tela de login do Topcom
-- `cadastro/` — autocadastro de equipes
-- `images/` e `arquivos/` — logos e o manual do usuário
+## De onde vem
 
-## Atualizar o BOCA
+| Camada | Projeto |
+|---|---|
+| BOCA | [cassiopc/boca](https://github.com/cassiopc/boca) — o juiz da Maratona SBC |
+| BOCA com melhorias | [rlaiola/boca](https://github.com/rlaiola/boca) — fork do Rodrigo Laiola |
+| Docker | [rlaiola/boca-docker](https://github.com/rlaiola/boca-docker) — imagens `boca-web` e `boca-jail`; variáveis de ambiente e opções documentadas lá |
+| Personalização do PET | este repositório |
 
-O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do `boca-jail` e do
-`postgres` (no `docker-compose.prod.yml`). Os dois primeiros chegam em PRs separados e vão juntos para produção.
+## O que o PET muda
+
+A imagem é a `boca-web` do boca-docker com `personalizacao/` copiada por cima de `/var/www/boca/src`:
+
+| Em `personalizacao/` | O quê |
+|---|---|
+| `index.php`, `Css.php` | tela de login e cores do Topcom, botões de cadastro e manual |
+| `admin/`, `system/`, `team/` `header.php` | cor da barra de cada perfil |
+| `admin/language.php` | cor dos links |
+| `cadastro/` | autocadastro de equipes (não existe no BOCA) |
+| `images/`, `arquivos/` | logos do Topcom e o manual do usuário |
+
+Opções do BOCA ligadas no `docker-compose.prod.yml`: `BOCA_ENABLE_VIEW_RUNS`, `BOCA_ENABLE_PROBLEM_STATS`,
+`BOCA_SHOW_UNSOLVED_FIRST`, `BOCA_ENABLE_TABLE_FILTER`, `BOCA_DISABLE_TASKS` e `BOCA_TRUSTED_PROXIES`.
+
+## Como roda
+
+Stack `boca-treinamento` na VM do PET, atrás do Traefik:
+
+| Container | Imagem |
+|---|---|
+| `boca-treinamento_web` | `ghcr.io/pet-eng-comp-org/boca-treinamento/web`, publicada por este repositório |
+| `boca-treinamento_jail` | `ghcr.io/rlaiola/boca-docker/boca-jail` |
+| `boca-treinamento_database` | `postgres:14-alpine` |
+
+O jail e o banco ficam numa rede só da stack, sem internet. Senhas nas variáveis da stack no Portainer, com cópia
+no Notion (página Senhas).
+
+## Rodar localmente
+
+```sh
+docker compose -f docker-compose.dev.yml watch
+```
+
+BOCA em http://localhost:8000/boca, usuário `system`, senha `boca`, com banco vazio. Arquivo editado em
+`personalizacao/` aparece na hora, sem rebuild.
+
+<details>
+<summary><b>Atualizar o BOCA</b></summary>
+
+O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do `boca-jail` e do `postgres` (nos
+composes). O `boca-web` e o `boca-jail` vão juntos para produção.
 
 No PR do `boca-web`, o CI roda `./verifica-base.sh`, que falha se a versão nova mudou algum arquivo que
-`personalizacao/` sobrescreve (`base.sha256` guarda o hash de cada um na base atual). Nesse caso: comparar o
-arquivo novo da base com o nosso, trazer para `personalizacao/` o que a base mudou, rodar
-`./verifica-base.sh --atualiza` e commitar no mesmo PR.
+`personalizacao/` sobrescreve. Nesse caso: comparar o arquivo novo da base com o nosso, trazer para
+`personalizacao/` o que a base mudou, rodar `./verifica-base.sh --atualiza` e commitar no mesmo PR.
 
-Nada chega à VM sozinho: as imagens estão fixadas por digest, e implantar continua sendo trocar o digest do
-`boca-treinamento/web` no compose e atualizar a stack.
+</details>
 
-## Publicar e implantar
+<details>
+<summary><b>Publicar e implantar</b></summary>
 
-Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-<commit>`, a imagem do
-`boca-treinamento_web` (o `boca-treinamento_jail` usa direto a `boca-jail` do boca-docker); o digest aparece no resumo do
-workflow. Implantar é trocar o digest em `docker-compose.prod.yml` por um PR e atualizar a stack `boca-treinamento` no
-Portainer. As senhas ficam nas variáveis da stack (`BOCA_DB_PASSWORD`, `BOCA_DB_SUPER_PASSWORD`,
-`BOCA_PASSWORD`, `BOCA_KEY`), com cópia no Notion.
+1. Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-<commit>`; o digest aparece no resumo
+   do workflow.
+2. Trocar o digest em `docker-compose.prod.yml` por um PR.
+3. No Portainer, atualizar a stack `boca-treinamento` com o compose novo, mantendo as variáveis.
 
-## Senha do `bocauser`
+Nada chega à VM sozinho: as imagens estão fixadas por digest.
 
-As tabelas do banco pertencem ao `bocauser`. Se a senha dele no banco não for a de `BOCA_DB_PASSWORD`, o
-`init.sh` da imagem conclui que o banco não existe e roda o `createdb.php`, **que recria o banco do zero**.
-Trocar essa senha é sempre nos dois lugares, banco primeiro:
-`ALTER ROLE bocauser PASSWORD '...'` e depois a variável da stack.
+</details>
+
+<details>
+<summary><b>Trocar a senha do <code>bocauser</code></b></summary>
+
+Sempre no banco primeiro e depois na variável `BOCA_DB_PASSWORD` da stack:
+
+```sql
+ALTER ROLE bocauser PASSWORD '...';
+```
+
+Na ordem inversa o `init.sh` não conecta, conclui que o banco não existe e **recria o banco do zero**.
+
+</details>
+
+## Créditos e licença
+
+BOCA por Cassio de Campos; boca-docker por João Vitor Alves Fazolo e Rodrigo Laiola Guimarães (UFES).
+Personalização do PET Engenharia de Computação — UFES.
+
+GPL-3.0, como o BOCA e o boca-docker. Os arquivos de `personalizacao/` que existem no BOCA são versões modificadas
+dos originais.

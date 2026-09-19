@@ -1,0 +1,60 @@
+# Ambiente local: docker compose -f docker-compose.dev.yml watch
+# BOCA em http://localhost:8000/boca (system / boca). Banco vazio, com um concurso de fábrica.
+# Com o watch, editar um arquivo de personalizacao/ copia na hora para o container.
+services:
+  boca-web:
+    build: .
+    ports:
+      - 8000:80
+    depends_on:
+      boca-postgres:
+        condition: service_healthy
+    environment:
+      - BOCA_DB_HOST=boca-postgres
+      - BOCA_DB_NAME=bocadb
+      - BOCA_DB_USER=bocauser
+      - BOCA_DB_PASSWORD=bocauser
+      - BOCA_DB_SUPER_USER=postgres
+      - BOCA_DB_SUPER_PASSWORD=postgres
+      - BOCA_PASSWORD=boca
+      - BOCA_URL=localhost:8000/boca
+      - BOCA_ENABLE_VIEW_RUNS=true
+      - BOCA_ENABLE_PROBLEM_STATS=true
+      - BOCA_SHOW_UNSOLVED_FIRST=true
+      - BOCA_ENABLE_TABLE_FILTER=true
+      - BOCA_DISABLE_TASKS=true
+    develop:
+      watch:
+        - action: sync
+          path: ./personalizacao
+          target: /var/www/boca/src
+        - action: rebuild
+          path: ./Dockerfile
+
+  boca-jail:
+    image: ghcr.io/rlaiola/boca-docker/boca-jail:1.2.3@sha256:8542b574b09bc0ef47b45c0a6751379ade15a63846b2f975f1283f4a1ddbba49
+    privileged: true
+    depends_on:
+      boca-postgres:
+        condition: service_healthy
+    environment:
+      - BOCA_DB_HOST=boca-postgres
+      - BOCA_WEB_HOST=boca-web
+      - BOCA_DB_NAME=bocadb
+      - BOCA_DB_USER=bocauser
+      - BOCA_DB_PASSWORD=bocauser
+
+  boca-postgres:
+    image: postgres:14-alpine@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dados:
