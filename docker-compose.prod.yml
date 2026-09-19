@@ -37,6 +37,7 @@ services:
       - "traefik.docker.network=traefik"
     networks:
       - traefik
+      - interna
 
   # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
   boca-jail:
@@ -57,7 +58,7 @@ services:
       - BOCA_DB_USER=bocauser
       - BOCA_DB_PASSWORD=${BOCA_DB_PASSWORD}
     networks:
-      - traefik
+      - interna
 
   boca-postgres:
     image: postgres@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
@@ -71,7 +72,7 @@ services:
     volumes:
       - boca_data:/var/lib/postgresql/data
     networks:
-      - traefik
+      - interna
 
 volumes:
   boca_data:
@@ -82,3 +83,6 @@ networks:
   traefik:
     name: traefik
     external: true
+  # jail e banco fora da rede compartilhada; internal: sem saída para a internet
+  interna:
+    internal: true
