@@ -41,7 +41,7 @@ services:
 
   # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
   boca-jail:
-    image: ghcr.io/rlaiola/boca-docker/boca-jail@sha256:dbb07e5dc48517d773f1d337a840428a260906b5e68d99bf2938c30190d11bb8
+    image: ghcr.io/rlaiola/boca-docker/boca-jail@sha256:8542b574b09bc0ef47b45c0a6751379ade15a63846b2f975f1283f4a1ddbba49
     privileged: true
     restart: unless-stopped
     logging:
