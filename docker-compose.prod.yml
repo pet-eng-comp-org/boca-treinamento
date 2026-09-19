@@ -10,7 +10,8 @@ services:
         max-size: "10m"
         max-file: "3"
     depends_on:
-      - boca-postgres
+      boca-postgres:
+        condition: service_healthy
     environment:
       - BOCA_DB_HOST=boca-postgres
       - DB_PORT=5432
@@ -22,6 +23,14 @@ services:
       - BOCA_PASSWORD=${BOCA_PASSWORD}
       - BOCA_KEY=${BOCA_KEY}
       - BOCA_URL=boca.pet.inf.ufes.br/boca
+      # opções do BOCA do Rodrigo (rlaiola/boca) para o treino
+      - BOCA_ENABLE_VIEW_RUNS=true       # a equipe vê o código que enviou
+      - BOCA_ENABLE_PROBLEM_STATS=true   # dificuldade de cada problema
+      - BOCA_SHOW_UNSOLVED_FIRST=true
+      - BOCA_ENABLE_TABLE_FILTER=true
+      - BOCA_DISABLE_TASKS=true          # impressão e balão só existem na competição presencial
+      # IP real do visitante vem no X-Forwarded-For do Traefik (rede traefik, 172.31.0.0/16)
+      - BOCA_TRUSTED_PROXIES=172.31.0.*
     volumes:
       - /srv/boca-config/web-score/score.sep:/var/www/boca/src/private/score.sep
     labels:
@@ -50,7 +59,8 @@ services:
         max-size: "10m"
         max-file: "3"
     depends_on:
-      - boca-postgres
+      boca-postgres:
+        condition: service_healthy
     environment:
       - BOCA_DB_HOST=boca-postgres
       - BOCA_WEB_HOST=boca-web
@@ -71,6 +81,12 @@ services:
         max-file: "3"
     volumes:
       - boca_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bocadb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - interna
 
