@@ -8,6 +8,7 @@
 #   ./verifica-base.sh            falha se a base do Dockerfile difere de base.sha256
 #   ./verifica-base.sh --atualiza regrava base.sha256 (depois de revisar e portar)
 set -euo pipefail
+export LC_ALL=C   # ordem do sort igual em qualquer máquina
 cd "$(dirname "$0")"
 
 BASE=$(awk '/^FROM /{print $2; exit}' Dockerfile)
