@@ -41,7 +41,7 @@ services:
 
   # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
   boca-jail:
-    image: ghcr.io/rlaiola/boca-docker/boca-jail@sha256:8542b574b09bc0ef47b45c0a6751379ade15a63846b2f975f1283f4a1ddbba49
+    image: ghcr.io/rlaiola/boca-docker/boca-jail:1.2.3@sha256:8542b574b09bc0ef47b45c0a6751379ade15a63846b2f975f1283f4a1ddbba49
     privileged: true
     restart: unless-stopped
     logging:
@@ -61,7 +61,7 @@ services:
       - interna
 
   boca-postgres:
-    image: postgres@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
+    image: postgres:14-alpine@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
     container_name: boca-postgres
     restart: unless-stopped
     logging:

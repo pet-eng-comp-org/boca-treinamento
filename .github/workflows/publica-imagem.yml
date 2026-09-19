@@ -8,6 +8,8 @@ on:
     paths:
       - 'personalizacao/**'
       - 'Dockerfile'
+      - 'base.sha256'
+      - 'verifica-base.sh'
       - '.github/workflows/publica-imagem.yml'
   pull_request:
   workflow_dispatch:
@@ -20,6 +22,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      # falha se a versão nova da base mudou um arquivo que personalizacao/ sobrescreve
+      - name: Confere a base contra os arquivos personalizados
+        run: ./verifica-base.sh
 
       - uses: docker/login-action@v3
         if: github.event_name != 'pull_request'

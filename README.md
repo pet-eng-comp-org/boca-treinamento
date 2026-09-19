@@ -10,8 +10,18 @@ A imagem é a `boca-web` do [boca-docker](https://github.com/rlaiola/boca-docker
 - `cadastro/` — autocadastro de equipes
 - `images/` e `arquivos/` — logos e o manual do usuário
 
-Atualizar o BOCA é trocar a versão no `FROM` do `Dockerfile` e conferir se algum arquivo de
-`personalizacao/` mudou na versão nova (`index.php` e `Css.php` costumam mudar).
+## Atualizar o BOCA
+
+O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do `boca-jail` e do
+`postgres` (no `docker-compose.prod.yml`). Os dois primeiros chegam em PRs separados e vão juntos para produção.
+
+No PR do `boca-web`, o CI roda `./verifica-base.sh`, que falha se a versão nova mudou algum arquivo que
+`personalizacao/` sobrescreve (`base.sha256` guarda o hash de cada um na base atual). Nesse caso: comparar o
+arquivo novo da base com o nosso, trazer para `personalizacao/` o que a base mudou, rodar
+`./verifica-base.sh --atualiza` e commitar no mesmo PR.
+
+Nada chega à VM sozinho: as imagens estão fixadas por digest, e implantar continua sendo trocar o digest do
+`boca-topcom` no compose e atualizar a stack.
 
 `competicao/` guarda o BOCA usado no dia de cada Topcom, que roda numa máquina à parte, não na VM do PET.
 
