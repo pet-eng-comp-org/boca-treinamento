@@ -1,7 +1,7 @@
-# boca-topcom
+# boca-treinamento
 
 BOCA de treinamento do Topcom (`boca.pet.inf.ufes.br/boca`), no ar o ano todo para treinar com as
-questões das edições anteriores.
+questões das edições anteriores. O BOCA do dia da competição roda em outra máquina e não está aqui.
 
 A imagem é a `boca-web` do [boca-docker](https://github.com/rlaiola/boca-docker) (BOCA do
 [cassiopc/boca](https://github.com/cassiopc/boca)) com os arquivos de `personalizacao/` copiados por cima:
@@ -21,14 +21,12 @@ arquivo novo da base com o nosso, trazer para `personalizacao/` o que a base mud
 `./verifica-base.sh --atualiza` e commitar no mesmo PR.
 
 Nada chega à VM sozinho: as imagens estão fixadas por digest, e implantar continua sendo trocar o digest do
-`boca-topcom` no compose e atualizar a stack.
-
-`competicao/` guarda o BOCA usado no dia de cada Topcom, que roda numa máquina à parte, não na VM do PET.
+`boca-treinamento` no compose e atualizar a stack.
 
 ## Publicar e implantar
 
-Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-topcom:sha-<commit>`; o digest aparece no resumo do
-workflow. Implantar é trocar o digest em `docker-compose.prod.yml` por um PR e atualizar a stack `boca` (30) no
+Merge na `main` publica `ghcr.io/pet-eng-comp-org/boca-treinamento:sha-<commit>`; o digest aparece no resumo do
+workflow. Implantar é trocar o digest em `docker-compose.prod.yml` por um PR e atualizar a stack `boca-treinamento` no
 Portainer. As senhas ficam nas variáveis da stack (`BOCA_DB_PASSWORD`, `BOCA_DB_SUPER_PASSWORD`,
 `BOCA_PASSWORD`, `BOCA_KEY`), com cópia no Notion.
 

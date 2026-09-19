@@ -2,4 +2,5 @@
 .github
 *.md
 docker-compose.prod.yml
-competicao
+verifica-base.sh
+base.sha256
