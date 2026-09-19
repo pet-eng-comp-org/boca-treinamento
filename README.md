@@ -3,8 +3,7 @@
 [![Publica imagem no GHCR](https://github.com/pet-eng-comp-org/boca-treinamento/actions/workflows/publica-imagem.yml/badge.svg)](https://github.com/pet-eng-comp-org/boca-treinamento/actions/workflows/publica-imagem.yml)
 
 BOCA de treinamento do Topcom, no ar o ano todo em **[boca.pet.inf.ufes.br/boca](https://boca.pet.inf.ufes.br/boca)**
-com as questões das edições anteriores. Equipes se cadastram sozinhas. O BOCA do dia da competição roda em outra
-máquina e não está aqui.
+com as questões das edições anteriores. Equipes se cadastram sozinhas.
 
 ## De onde vem
 
