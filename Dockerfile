@@ -1,6 +1,6 @@
 # BOCA de treinamento do Topcom: a boca-web oficial (boca-docker 1.2.3, BOCA 1.5.24)
 # com as personalizações do PET por cima: visual do Topcom, tela de login e autocadastro.
-FROM ghcr.io/rlaiola/boca-docker/boca-web:1.2.3@sha256:282b56728420ba451bcbe8d9ff1e5af317a68b20e9c2fe4d3bcd080d10abdf72
+FROM ghcr.io/rlaiola/boca-docker/boca-web:1.2.3@sha256:17469fbcc656dfed258853340be12c2ba5dd84730e15ee713d2d66de56d2335c
 
 LABEL org.opencontainers.image.source="https://github.com/pet-eng-comp-org/boca-treinamento"
 
