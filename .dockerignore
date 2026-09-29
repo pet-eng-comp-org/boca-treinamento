@@ -4,3 +4,4 @@
 docker-compose.prod.yml
 verifica-base.sh
 base.sha256
+jail
