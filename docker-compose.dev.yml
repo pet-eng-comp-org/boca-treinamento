@@ -45,7 +45,7 @@ services:
       - BOCA_DB_PASSWORD=bocauser
 
   boca-postgres:
-    image: postgres:14-alpine@sha256:09f58ad6aa5b3e93c5cfc6144d89cc6b57fccffeddb69e95650882352c543063
+    image: postgres:14-alpine@sha256:4ea9e5ed06591da7ea23eb65465e8d3187fe79f4d5ec3ae976d29a33b013e77a
     environment:
       - POSTGRES_PASSWORD=postgres
     volumes:
