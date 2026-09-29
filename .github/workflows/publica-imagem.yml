@@ -95,9 +95,13 @@ jobs:
           set -euo pipefail
           ARQ=docker-compose.prod.yml
           # Execução antiga não implanta por cima de uma mais nova: se entrou commit de
-          # código depois deste (os do bot não contam), a execução dele implanta. Filtra
-          # pelo assunto; o awk lê tudo porque, com pipefail, sair cedo mataria o git log.
-          novo=$(git log --format='%H%x09%s' "${GITHUB_SHA}..HEAD" | awk -F'\t' '!f && $2 !~ /^deploy:/ {print $1; f=1}')
+          # código depois deste (os do bot não contam), a execução dele implanta. Só conta
+          # commit que dispara este workflow (os mesmos caminhos do on.push.paths): um
+          # commit só de README ou do compose não roda o workflow, e ninguém implantaria.
+          # Filtra pelo assunto; o awk lê tudo porque, com pipefail, sair cedo mataria o git log.
+          novo=$(git log --format='%H%x09%s' "${GITHUB_SHA}..HEAD" -- personalizacao Dockerfile init-pet.sh jail \
+                   base.sha256 verifica-base.sh .github/workflows/publica-imagem.yml \
+                 | awk -F'\t' '!f && $2 !~ /^deploy:/ {print $1; f=1}')
           if [ -n "$novo" ]; then
             echo "Há commit mais novo ($novo); a execução dele implanta."; exit 0
           fi

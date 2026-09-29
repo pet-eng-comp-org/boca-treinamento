@@ -46,7 +46,8 @@ confere() {
   fi
 
   echo "A base $base mudou arquivos que $raiz/personalizacao/ sobrescreve:"
-  diff <(echo "$atual") "$manifesto" | awk '/^[<>]/{print "  " $3}' | sort -u
+  # diff sai com 1 quando difere: sem o || true, o pipefail abortaria antes de conferir a outra base
+  { diff <(echo "$atual") "$manifesto" || true; } | awk '/^[<>]/{print "  " $3}' | sort -u
   falhou=1
 }
 
