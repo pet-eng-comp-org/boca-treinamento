@@ -29,6 +29,12 @@ A imagem é a `boca-web` do boca-docker com `personalizacao/` copiada por cima d
 O entrypoint é o `init-pet.sh`: se o banco já existe, sobe o Apache sem passar pelo `/init.sh` do boca-docker, que
 recria o banco do zero quando o `bocauser` não consegue conectar por qualquer motivo.
 
+O jail é a `boca-jail` do boca-docker com o `autojudging.php` de antes do commit
+[`e46ca73`](https://github.com/rlaiola/boca/commit/e46ca73) do rlaiola/boca (em `jail/personalizacao/`). Esse commit
+passou a usar o código de saída do script `compare` como número da resposta, e os pacotes de problema no formato do
+BOCA saem com 4 quando a saída bate: 4 é "Time limit exceeded", então toda solução certa virava TLE. A versão
+anterior traduz 4 para YES e para no primeiro caso de teste errado.
+
 Opções do BOCA ligadas no `docker-compose.prod.yml`: `BOCA_ENABLE_VIEW_RUNS`, `BOCA_ENABLE_PROBLEM_STATS`,
 `BOCA_SHOW_UNSOLVED_FIRST`, `BOCA_ENABLE_TABLE_FILTER`, `BOCA_DISABLE_TASKS` e `BOCA_TRUSTED_PROXIES`.
 
@@ -39,7 +45,7 @@ Stack `boca-treinamento` na VM do PET, atrás do Traefik:
 | Container | Imagem |
 |---|---|
 | `boca-treinamento_web` | `ghcr.io/pet-eng-comp-org/boca-treinamento/web`, publicada por este repositório |
-| `boca-treinamento_jail` | `ghcr.io/rlaiola/boca-docker/boca-jail` |
+| `boca-treinamento_jail` | `ghcr.io/pet-eng-comp-org/boca-treinamento/jail`, publicada por este repositório |
 | `boca-treinamento_database` | `postgres:14-alpine` |
 
 O jail e o banco ficam numa rede só da stack, sem internet. Senhas nas variáveis da stack no Portainer, com cópia
@@ -57,23 +63,25 @@ BOCA em http://localhost:8000/boca, usuário `system`, senha `boca`, com banco v
 <details>
 <summary><b>Atualizar o BOCA</b></summary>
 
-O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do `boca-jail` e do `postgres` (nos
-composes). O `boca-web` e o `boca-jail` vão juntos para produção.
+O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do `boca-jail` (no `jail/Dockerfile`)
+e do `postgres` (nos composes). O `boca-web` e o `boca-jail` vão juntos para produção.
 
-No PR do `boca-web`, o CI roda `./verifica-base.sh`, que falha se a versão nova mudou algum arquivo que
-`personalizacao/` sobrescreve ou o `/init.sh` (conferir se o `init-pet.sh` continua cobrindo o que ele faz). Nesse caso: comparar o arquivo novo da base com o nosso, trazer para
-`personalizacao/` o que a base mudou, rodar `./verifica-base.sh --atualiza` e commitar no mesmo PR.
+Nesses PRs, o CI roda `./verifica-base.sh`, que falha se a versão nova mudou algum arquivo que `personalizacao/` ou
+`jail/personalizacao/` sobrescreve, ou o `/init.sh` (conferir se o `init-pet.sh` continua cobrindo o que ele faz).
+Nesse caso: comparar o arquivo novo da base com o nosso, trazer para a personalização o que a base mudou, rodar
+`./verifica-base.sh --atualiza` e commitar no mesmo PR. Se o `autojudging.php` novo voltar a tratar o 4 do `compare`
+como YES, o nosso pode sair.
 
 </details>
 
 <details>
 <summary><b>Publicar e implantar</b></summary>
 
-Merge na `main` é implantar: o CI publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-<commit>` e grava o
-digest em `docker-compose.prod.yml`; a stack `boca-treinamento` é git-ops e o Portainer aplica em até 5 minutos.
-PR do Dependabot no compose (jail, postgres) também vai para produção no merge.
+Merge na `main` é implantar: o CI publica `ghcr.io/pet-eng-comp-org/boca-treinamento/web` e `.../jail` com a tag
+`sha-<commit>` e grava em `docker-compose.prod.yml` o digest de quem mudou; a stack `boca-treinamento` é git-ops e o
+Portainer aplica em até 5 minutos. PR do Dependabot no compose (postgres) também vai para produção no merge.
 
-Voltar uma versão: `git revert` do commit `deploy: imagem do commit ...`.
+Voltar uma versão: `git revert` do commit `deploy: ...`.
 
 </details>
 

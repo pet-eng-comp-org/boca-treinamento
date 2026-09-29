@@ -64,9 +64,10 @@ services:
       - interna
 
   # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
+  # Imagem de jail/: a boca-jail com o veredito clássico (4 do compare = YES), ver README.
   boca-jail:
     container_name: boca-treinamento_jail
-    image: ghcr.io/rlaiola/boca-docker/boca-jail:1.2.3@sha256:9f0134b5535f9f84c1a6209536738a1ddac0cafe5593772ff4142cc2e145eae1
+    image: ghcr.io/pet-eng-comp-org/boca-treinamento/jail:sha-6a8e6e875d2ca2325fcef77d46fbc82f3aa40536@sha256:83e36d420d4b19e7e1c794fb19e2d1aeb4b884304f21ff6c3ccc83ab91a4e73a
     privileged: true
     restart: unless-stopped
     logging:

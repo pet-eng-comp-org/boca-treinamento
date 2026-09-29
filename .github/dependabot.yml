@@ -1,9 +1,9 @@
-# Abre PR quando sai versão nova da base (boca-web), do boca-jail, do postgres ou das actions.
-# boca-web (Dockerfile) e boca-jail (compose) chegam em PRs separados: implantar os dois juntos.
+# Abre PR quando sai versão nova das bases (boca-web no Dockerfile, boca-jail no jail/Dockerfile),
+# do postgres ou das actions. boca-web e boca-jail chegam em PRs separados: implantar os dois juntos.
 version: 2
 updates:
   - package-ecosystem: docker
-    directory: /
+    directories: [/, /jail]
     schedule:
       interval: weekly
     labels: [dependencias]
@@ -16,6 +16,7 @@ updates:
     ignore:
       # a imagem do PET é publicada por este próprio repositório
       - dependency-name: ghcr.io/pet-eng-comp-org/boca-treinamento/web
+      - dependency-name: ghcr.io/pet-eng-comp-org/boca-treinamento/jail
       # troca de versão maior do Postgres exige dump e restore, não só trocar a imagem
       - dependency-name: postgres
         update-types: [version-update:semver-major]

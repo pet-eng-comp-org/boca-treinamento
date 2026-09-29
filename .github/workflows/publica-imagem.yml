@@ -1,8 +1,8 @@
 name: Publica imagem no GHCR
 
-# Merge na main: constrói e publica a imagem do web e grava o digest no
-# docker-compose.prod.yml; o Portainer acompanha esse arquivo e aplica.
-# O compose aponta para digest, nunca para tag: o commit que dispara a implantação
+# Merge na main: constrói e publica as imagens do web e do jail e grava o digest do que
+# mudou no docker-compose.prod.yml; o Portainer acompanha esse arquivo e aplica.
+# O compose aponta para digest, nunca para tag solta: o commit que dispara a implantação
 # é sempre posterior à imagem existir.
 on:
   push:
@@ -10,6 +10,8 @@ on:
     paths:
       - 'personalizacao/**'
       - 'Dockerfile'
+      - 'init-pet.sh'
+      - 'jail/**'
       - 'base.sha256'
       - 'verifica-base.sh'
       - '.github/workflows/publica-imagem.yml'
@@ -18,17 +20,25 @@ on:
 
 jobs:
   build:
+    name: ${{ matrix.servico }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - servico: web
+            contexto: .
+          - servico: jail
+            contexto: ./jail
     steps:
       - uses: actions/checkout@v7
 
-      # falha se a versão nova da base mudou um arquivo que personalizacao/ sobrescreve
-      - name: Confere a base contra os arquivos personalizados
+      # falha se a versão nova de uma base mudou um arquivo que personalizamos
+      - name: Confere as bases contra os arquivos personalizados
+        if: matrix.servico == 'web'
         run: ./verifica-base.sh
 
       - uses: docker/login-action@v4
@@ -41,45 +51,97 @@ jobs:
       - id: build
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: ${{ matrix.contexto }}
           # em pull request a imagem é construída mas não publicada
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/web:sha-${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/${{ matrix.servico }}:sha-${{ github.sha }}
 
       - if: github.event_name != 'pull_request'
         run: |
-          echo "Digest publicado: ${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Digest publicado (${{ matrix.servico }}): ${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
 
+  # Publicar não é implantar: quem implanta é o commit abaixo, que grava o digest novo no
+  # docker-compose.prod.yml. Só troca o serviço cujos arquivos mudaram desde o commit que
+  # está em produção (o :sha- anotado no compose): build nunca sai com o mesmo digest, e
+  # trocar os dois sempre reiniciaria o jail por causa de uma mudança só no web.
+  #
+  # Esse commit é o registro do deploy: git revert nele volta a versão anterior. O push
+  # feito com GITHUB_TOKEN não dispara este workflow de novo.
   implanta:
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    concurrency: implanta
     permissions:
       contents: write
+      packages: read
     steps:
       - uses: actions/checkout@v7
         with:
           ref: main
+          fetch-depth: 0
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Grava o digest no compose de produção
         env:
-          DIGEST: ${{ needs.build.outputs.digest }}
+          EVENTO: ${{ github.event_name }}
         run: |
           set -euo pipefail
           ARQ=docker-compose.prod.yml
-          IMG="ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}/web"
-          sed -i -E "s#(image: )${IMG}@sha256:[a-f0-9]+#\1${IMG}@${DIGEST}#" "$ARQ"
-          if git diff --quiet -- "$ARQ"; then
-            echo "O compose já aponta para ${DIGEST}."
-            exit 0
+          # Execução antiga não implanta por cima de uma mais nova: se entrou commit de
+          # código depois deste (os do bot não contam), a execução dele implanta. Filtra
+          # pelo assunto; o awk lê tudo porque, com pipefail, sair cedo mataria o git log.
+          novo=$(git log --format='%H%x09%s' "${GITHUB_SHA}..HEAD" | awk -F'\t' '!f && $2 !~ /^deploy:/ {print $1; f=1}')
+          if [ -n "$novo" ]; then
+            echo "Há commit mais novo ($novo); a execução dele implanta."; exit 0
           fi
+
+          mudou=""
+          for servico in web jail; do
+            case $servico in
+              web)  arquivos='^(personalizacao/|Dockerfile$|init-pet\.sh$)' ;;
+              jail) arquivos='^jail/' ;;
+            esac
+            img="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ github.event.repository.name }}/${servico}"
+            # Compara com o commit que está EM PRODUÇÃO, não com o push anterior: deploy
+            # que falhou ou foi cancelado entra na próxima execução em vez de se perder.
+            ultimo=$(grep -oE "${img}:sha-[0-9a-f]+" "$ARQ" | head -1 | sed 's/.*:sha-//' || true)
+            if [ "$EVENTO" = push ] && [ -n "$ultimo" ] && git cat-file -e "${ultimo}^{commit}" 2>/dev/null; then
+              if ! git diff --name-only "$ultimo" "$GITHUB_SHA" | grep -qE "$arquivos"; then
+                continue
+              fi
+            fi
+            digest=$(docker buildx imagetools inspect "${img}:sha-${GITHUB_SHA}" --format '{{json .Manifest}}' | jq -r .digest)
+            # Digest vazio apagaria a imagem do compose e derrubaria o serviço.
+            if ! echo "$digest" | grep -qxE 'sha256:[0-9a-f]{64}'; then
+              echo "Digest inválido para ${img}: '${digest}'"; exit 1
+            fi
+            sed -i -E "s#(image: ${img})(:sha-[0-9a-f]+)?@sha256:[0-9a-f]+#\1:sha-${GITHUB_SHA}@${digest}#" "$ARQ"
+            # Linha que não casou (imagem renomeada, dono novo) não pode passar em verde.
+            if ! grep -qF "${img}:sha-${GITHUB_SHA}@${digest}" "$ARQ"; then
+              echo "A linha image: de ${img} não foi encontrada no compose"; exit 1
+            fi
+            mudou="$mudou $servico"
+          done
+
+          if git diff --quiet -- "$ARQ"; then
+            echo "Nada a implantar: nenhum serviço mudou desde o que está em produção."; exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -qm "deploy: imagem do commit ${GITHUB_SHA:0:8}
-
-          Digest: ${DIGEST}
+          git commit -qm "deploy:$mudou no commit ${GITHUB_SHA:0:8}
 
           O Portainer aplica em até 5 minutos. Para voltar: git revert deste commit." -- "$ARQ"
-          # push com GITHUB_TOKEN não dispara workflow, então não há laço
-          git push -q origin HEAD:main
+          # Merge que entrou entre o checkout e o push: rebase e tenta de novo.
+          for tentativa in 1 2 3; do
+            git push -q origin HEAD:main && exit 0
+            sleep 5; git pull -q --rebase origin main
+          done
+          echo "O push do commit de deploy falhou 3 vezes"; exit 1
