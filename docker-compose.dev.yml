@@ -32,7 +32,7 @@ services:
           path: ./Dockerfile
 
   boca-jail:
-    image: ghcr.io/rlaiola/boca-docker/boca-jail:1.2.3@sha256:8542b574b09bc0ef47b45c0a6751379ade15a63846b2f975f1283f4a1ddbba49
+    image: ghcr.io/rlaiola/boca-docker/boca-jail:1.2.3@sha256:9f0134b5535f9f84c1a6209536738a1ddac0cafe5593772ff4142cc2e145eae1
     privileged: true
     depends_on:
       boca-postgres:
