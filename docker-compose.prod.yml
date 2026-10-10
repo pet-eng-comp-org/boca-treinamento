@@ -110,7 +110,9 @@ services:
 volumes:
   boca_data:
     external: true
-    name: boca_boca_data
+    # Antes boca_boca_data (nome herdado da stack `boca` de 2024); dados copiados
+    # em 10/10/2026 para o nome com o prefixo desta stack.
+    name: boca-treinamento_database-data
 
 networks:
   traefik:
