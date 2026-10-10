@@ -63,8 +63,12 @@ BOCA em http://localhost:8000/boca, usuário `system`, senha `boca`, com banco v
 <details>
 <summary><b>Atualizar o BOCA</b></summary>
 
-O Dependabot abre PR quando sai versão nova do `boca-web` (no `Dockerfile`), do `boca-jail` (no `jail/Dockerfile`)
-e do `postgres` (nos composes). O `boca-web` e o `boca-jail` vão juntos para produção.
+As bases (`boca-web` no `Dockerfile`, `boca-jail` no `jail/Dockerfile`) vêm de um espelho no GHCR deste
+repositório (`boca-treinamento/web-base` e `jail-base`, uma tag por data). O `rlaiola/boca-docker` reconstrói a
+`1.2.3` todo dia e apaga as versões antigas aos sábados, então um `FROM` fixado direto nele quebrava o build em até
+uma semana. Toda segunda o `espelha-base.yml` copia a base e, se ela mudou, abre PR trocando o `FROM` e dispara o
+build dela; também roda pela aba Actions. O Dependabot cuida só do `postgres` (nos composes) e das actions. O
+`boca-web` e o `boca-jail` vão juntos para produção.
 
 Nesses PRs, o CI roda `./verifica-base.sh`, que falha se a versão nova mudou algum arquivo que `personalizacao/` ou
 `jail/personalizacao/` sobrescreve, ou o `/init.sh` (conferir se o `init-pet.sh` continua cobrindo o que ele faz).
