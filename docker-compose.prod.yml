@@ -3,7 +3,7 @@
 services:
   web:
     container_name: boca-treinamento_web
-    image: ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-3ad4bc5d05807b13034d910cc89dd39c937f67b5@sha256:9ff6f9923374896802fc065970ebabb2ee5b6ee71a6081360a905a6a78335ce0
+    image: ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-cd7c47b73f5d1211c770b5bc04856ff5e4670898@sha256:8d5c95f22b166693cf641788c3913bbd5ef6b3a36a9bcad3b17aefb0ebe60afd
     restart: unless-stopped
     logging:
       driver: json-file
@@ -68,7 +68,7 @@ services:
   # Imagem de jail/: a boca-jail com o veredito clássico (4 do compare = YES), ver README.
   jail:
     container_name: boca-treinamento_jail
-    image: ghcr.io/pet-eng-comp-org/boca-treinamento/jail:sha-6a8e6e875d2ca2325fcef77d46fbc82f3aa40536@sha256:83e36d420d4b19e7e1c794fb19e2d1aeb4b884304f21ff6c3ccc83ab91a4e73a
+    image: ghcr.io/pet-eng-comp-org/boca-treinamento/jail:sha-cd7c47b73f5d1211c770b5bc04856ff5e4670898@sha256:a9eb3b43bbbb46d5f1138c9f109141e80f49a7b096cd5b1c41eb4e847b4cb64c
     privileged: true
     restart: unless-stopped
     logging:
