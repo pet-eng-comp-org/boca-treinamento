@@ -1,0 +1,80 @@
+name: Espelha as bases do boca-docker
+
+# O rlaiola/boca-docker reconstrói a tag 1.2.3 todo dia e apaga as versões sem tag aos
+# sábados: um FROM fixado por digest direto nele quebrava o build em até uma semana
+# ("not found"). Este workflow copia as bases para o GHCR deste repositório, onde nada é
+# apagado, com uma tag por data. Quando a base mudou, troca o FROM numa branch, abre a PR e
+# dispara o publica-imagem.yml nela (PR aberta com o GITHUB_TOKEN não dispara workflow
+# sozinha); é esse build que roda o verifica-base.sh contra os arquivos personalizados.
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+concurrency: espelha-base
+
+env:
+  VERSAO: 1.2.3
+
+jobs:
+  espelha:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Copia as bases e troca o FROM do que mudou
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          hoje=$(date -u +%Y%m%d)
+          espelho="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ github.event.repository.name }}"
+          mudou=""
+          for par in web:Dockerfile jail:jail/Dockerfile; do
+            servico=${par%%:*}; arquivo=${par#*:}
+            origem="ghcr.io/rlaiola/boca-docker/boca-${servico}:${VERSAO}"
+            destino="${espelho}/${servico}-base"
+            digest=$(docker buildx imagetools inspect "$origem" --format '{{json .Manifest}}' | jq -r .digest)
+            if ! echo "$digest" | grep -qxE 'sha256:[0-9a-f]{64}'; then
+              echo "Digest inválido para ${origem}: '${digest}'"; exit 1
+            fi
+            # A cópia guarda o mesmo índice: o digest no espelho é o mesmo da origem.
+            docker buildx imagetools create -t "${destino}:${VERSAO}-${hoje}" "${origem}@${digest}"
+            if grep -qE "^FROM [^ ]+@${digest}\$" "$arquivo"; then
+              echo "${servico}: base igual à do FROM"; continue
+            fi
+            sed -i -E "0,/^FROM /s#^FROM [^ ]+#FROM ${destino}:${VERSAO}-${hoje}@${digest}#" "$arquivo"
+            grep -qF "FROM ${destino}:${VERSAO}-${hoje}@${digest}" "$arquivo" \
+              || { echo "O FROM de ${arquivo} não foi trocado"; exit 1; }
+            mudou="$mudou $servico"
+          done
+
+          if [ -z "$mudou" ]; then
+            echo "Nada mudou nas bases."; exit 0
+          fi
+
+          ramo="dependencias/base-${hoje}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$ramo"
+          git commit -qam "build: base do boca-docker ${VERSAO} de ${hoje} (${mudou# })"
+          git push -q --force origin "$ramo"
+          if ! gh pr view "$ramo" >/dev/null 2>&1; then
+            gh pr create --base main --head "$ramo" --label dependencias \
+              --title "build: base do boca-docker ${VERSAO} de ${hoje}" \
+              --body "O \`rlaiola/boca-docker\` publicou uma reconstrução da ${VERSAO} (${mudou# }). As bases foram copiadas para o espelho deste repositório (\`${espelho}/<servico>-base:${VERSAO}-${hoje}\`) e o \`FROM\` aponta para elas.
+
+          O build desta branch (disparado por este workflow) roda o \`verifica-base.sh\`: se ele falhar, a base mudou um arquivo que personalizamos, e a mudança precisa ser revista e portada antes do merge. web e jail vão juntos para produção."
+          fi
+          gh workflow run publica-imagem.yml --ref "$ramo"

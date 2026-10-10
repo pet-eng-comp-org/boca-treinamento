@@ -1,13 +1,8 @@
-# Abre PR quando sai versão nova das bases (boca-web no Dockerfile, boca-jail no jail/Dockerfile),
-# do postgres ou das actions. boca-web e boca-jail chegam em PRs separados: implantar os dois juntos.
+# Abre PR quando sai versão nova do postgres ou das actions. As bases do BOCA (boca-web e
+# boca-jail) não passam por aqui: o espelha-base.yml copia para o nosso GHCR e abre a PR, porque
+# o rlaiola/boca-docker apaga as versões antigas toda semana e o digest fixado nele sumia.
 version: 2
 updates:
-  - package-ecosystem: docker
-    directories: [/, /jail]
-    schedule:
-      interval: weekly
-    labels: [dependencias]
-
   - package-ecosystem: docker-compose
     directory: /
     schedule:
