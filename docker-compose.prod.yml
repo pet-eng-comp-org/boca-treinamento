@@ -1,7 +1,7 @@
 # Stack `boca-treinamento` na VM (BOCA de treinamento do Topcom). As senhas vêm das variáveis de ambiente da stack no Portainer.
 # O app usa o usuário comum `bocauser`; o superusuário `postgres` só serve ao init.sh.
 services:
-  boca-web:
+  web:
     container_name: boca-treinamento_web
     image: ghcr.io/pet-eng-comp-org/boca-treinamento/web:sha-3ad4bc5d05807b13034d910cc89dd39c937f67b5@sha256:9ff6f9923374896802fc065970ebabb2ee5b6ee71a6081360a905a6a78335ce0
     restart: unless-stopped
@@ -11,12 +11,12 @@ services:
         max-size: "10m"
         max-file: "3"
     depends_on:
-      boca-postgres:
+      database:
         condition: service_healthy
     environment:
-      # boca-postgres e boca-web são os nomes de serviço, únicos nas redes; um nome genérico como
-      # "database" colidiria com o de outra stack na rede traefik
-      - BOCA_DB_HOST=boca-postgres
+      # Host pelo apelido com o nome da stack, nunca pelo nome do serviço: o web também está na
+      # rede traefik, e um "database" de outra stack que entrasse nela colidiria.
+      - BOCA_DB_HOST=boca-treinamento-database
       - DB_PORT=5432
       - BOCA_DB_NAME=bocadb
       - BOCA_DB_USER=bocauser
@@ -60,12 +60,13 @@ services:
       - "traefik.http.middlewares.boca-treinamento_limite-cadastro.ratelimit.burst=30"
       - "traefik.docker.network=traefik"
     networks:
-      - traefik
-      - interna
+      traefik:
+      internal:
+        aliases: [boca-treinamento-web]
 
   # Privilegiado porque limita tempo e memória do código enviado pelas equipes.
   # Imagem de jail/: a boca-jail com o veredito clássico (4 do compare = YES), ver README.
-  boca-jail:
+  jail:
     container_name: boca-treinamento_jail
     image: ghcr.io/pet-eng-comp-org/boca-treinamento/jail:sha-6a8e6e875d2ca2325fcef77d46fbc82f3aa40536@sha256:83e36d420d4b19e7e1c794fb19e2d1aeb4b884304f21ff6c3ccc83ab91a4e73a
     privileged: true
@@ -76,18 +77,18 @@ services:
         max-size: "10m"
         max-file: "3"
     depends_on:
-      boca-postgres:
+      database:
         condition: service_healthy
     environment:
-      - BOCA_DB_HOST=boca-postgres
-      - BOCA_WEB_HOST=boca-web
+      - BOCA_DB_HOST=boca-treinamento-database
+      - BOCA_WEB_HOST=boca-treinamento-web
       - BOCA_DB_NAME=bocadb
       - BOCA_DB_USER=bocauser
       - BOCA_DB_PASSWORD=${BOCA_DB_PASSWORD}
     networks:
-      - interna
+      - internal
 
-  boca-postgres:
+  database:
     image: postgres:14-alpine@sha256:4ea9e5ed06591da7ea23eb65465e8d3187fe79f4d5ec3ae976d29a33b013e77a
     container_name: boca-treinamento_database
     restart: unless-stopped
@@ -97,7 +98,7 @@ services:
         max-size: "10m"
         max-file: "3"
     volumes:
-      - boca_data:/var/lib/postgresql/data
+      - database-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d bocadb"]
       interval: 10s
@@ -105,10 +106,11 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - interna
+      internal:
+        aliases: [boca-treinamento-database]
 
 volumes:
-  boca_data:
+  database-data:
     external: true
     # Antes boca_boca_data (nome herdado da stack `boca` de 2024); dados copiados
     # em 10/10/2026 para o nome com o prefixo desta stack.
@@ -119,5 +121,5 @@ networks:
     name: traefik
     external: true
   # jail e banco fora da rede compartilhada; internal: sem saída para a internet
-  interna:
+  internal:
     internal: true
