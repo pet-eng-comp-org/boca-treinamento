@@ -6,7 +6,7 @@
 # saem com 4 quando a saída bate, e 4 na tabela de respostas é "Time limit exceeded":
 # toda solução certa virava TLE. Também deixou de parar no primeiro caso errado, e a
 # resposta passou a ser a do último caso de teste.
-FROM ghcr.io/pet-eng-comp-org/boca-treinamento/jail-base:1.2.3-20261026@sha256:2860fb3c9e3b531b6a15649ad31c6bf82459c20cdc9c7ba5b87cf0086cdebc74
+FROM ghcr.io/pet-eng-comp-org/boca-treinamento/jail-base:1.2.3-20261116@sha256:6494502c930b2f5e086db78b4088b31403fdb24aec3b2e1d63af24c22f02b27c
 
 LABEL org.opencontainers.image.source="https://github.com/pet-eng-comp-org/boca-treinamento"
 
